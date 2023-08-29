@@ -27,14 +27,13 @@ export class CodePipelineStack extends Stack {
   constructor(scope: Construct, id: string, props: CodePipelineProps) {
     super(scope, id, props);
 
-    // code commit
-    // const codecommitRepository = new aws_codecommit.Repository(
-    //   this,
-    //   "CodeCommitChatbot",
-    //   {
-    //     repositoryName: props.repoName,
-    //   }
-    // );
+    // code commit - reference existing repository
+    const codecommitRepository = aws_codecommit.Repository.fromRepositoryName(
+      this,
+      "CodeCommitChatbot",
+      "chatbot-app"
+    );
+
 
     // ecr repository
     // const ecrRepository = new aws_ecr.Repository(
@@ -126,8 +125,8 @@ export class CodePipelineStack extends Stack {
 
             new aws_codepipeline_actions.CodeCommitSourceAction({
               actionName: "CodeCommitChatbot",
-              repository: "aws-fcj-repo",
-              branch: "main",
+              repository: codecommitRepository,
+              branch: "master",
               output: sourceOutput,
             }),
           ],

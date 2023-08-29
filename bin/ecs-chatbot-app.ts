@@ -25,7 +25,7 @@ const ecs = new EcsStack(app, "Ecs-CDK-Stack", {
 // create a pipeline
 new CodePipelineStack(app, "CodePipelineChatbotStack", {
   repoName: "aws-fcj-repo",
-  repoBranch: "main",
+  repoBranch: "master",
   repoOwner: "awscommunitybuilder",
   ecrRepoName: ecr.repoName,
   service: ecs.service,
