@@ -1,0 +1,32 @@
+{
+  "family": "<ECS_TASK_DEFINITION>",
+  "containerDefinitions": [
+    {
+      "name": "aws-fcj-container",
+      "image": "aws-fcj-chatbot:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "hostPort": 3000
+        }
+      ],
+      "memory": 512,
+      "cpu": 256,
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/<ECS_TASK_DEFINITION>",
+          "awslogs-region": "ap-southeast-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ],
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "networkMode": "awsvpc",
+  "executionRoleArn": "arn:aws:iam:<AWS_ACCOUNT_ID>:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam:<AWS_ACCOUNT_ID>:role/your-task-role"
+}

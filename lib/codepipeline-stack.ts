@@ -1,8 +1,6 @@
+// File: lib/codepipeline-stack.ts
+import { Duration, Stack, StackProps } from "aws-cdk-lib";
 import {
-  Duration,
-  RemovalPolicy,
-  Stack,
-  StackProps,
   aws_codebuild,
   aws_codecommit,
   aws_codepipeline,
@@ -15,7 +13,6 @@ import { Construct } from "constructs";
 import * as path from "path";
 
 interface CodePipelineProps extends StackProps {
-  readonly connectArn?: string;
   readonly repoName: string;
   readonly repoBranch: string;
   readonly repoOwner: string;
@@ -27,38 +24,27 @@ export class CodePipelineStack extends Stack {
   constructor(scope: Construct, id: string, props: CodePipelineProps) {
     super(scope, id, props);
 
-    // code commit - reference existing repository
+    // Existing CodeCommit repository
     const codecommitRepository = aws_codecommit.Repository.fromRepositoryName(
       this,
       "CodeCommitChatbot",
-      "chatbot-app"
+      "aws-fcj-repo"
     );
 
-
-    // ecr repository
-    // const ecrRepository = new aws_ecr.Repository(
-    //   this,
-    //   "EcrRepositoryForChatbot",
-    //   {
-    //     removalPolicy: RemovalPolicy.DESTROY,
-    //     repositoryName: props.ecrRepoName,
-    //     autoDeleteImages: true,
-    //   }
-    // );
-
+    // Existing ECR repository
     const ecrRepository = aws_ecr.Repository.fromRepositoryName(
       this,
       "EcrRepositoryForChatbot",
       props.ecrRepoName
     );
 
-    // artifact - source code
+    // Artifact for source code
     const sourceOutput = new aws_codepipeline.Artifact("SourceOutput");
 
-    // artifact - codebuild output
+    // Artifact for CodeBuild output
     const codeBuildOutput = new aws_codepipeline.Artifact("CodeBuildOutput");
 
-    // codebuild role push ecr image
+    // IAM Role for CodeBuild
     const codebuildRole = new aws_iam.Role(this, "RoleForCodeBuildChatbotApp", {
       roleName: "RoleForCodeBuildChatbotApp",
       assumedBy: new aws_iam.ServicePrincipal("codebuild.amazonaws.com"),
@@ -66,7 +52,7 @@ export class CodePipelineStack extends Stack {
 
     ecrRepository.grantPullPush(codebuildRole);
 
-    // codebuild - build ecr image
+    // CodeBuild project
     const ecrBuild = new aws_codebuild.PipelineProject(
       this,
       "BuildChatbotEcrImage",
@@ -91,38 +77,26 @@ export class CodePipelineStack extends Stack {
               type: aws_codebuild.BuildEnvironmentVariableType.PLAINTEXT,
             },
             TAG: {
-              value: "demo",
+              value: "latest",
               type: aws_codebuild.BuildEnvironmentVariableType.PLAINTEXT,
             },
           },
         },
-
-        // cdk upload build_spec.yaml to s3
+        // Use BuildSpec from an asset (path relative to the CDK app)
         buildSpec: aws_codebuild.BuildSpec.fromAsset(
           path.join(__dirname, "./build_spec.yaml")
         ),
       }
     );
 
-    // code pipeline
+    // CodePipeline
     new aws_codepipeline.Pipeline(this, "CodePipelineChatbot", {
       pipelineName: "CodePipelineChatbot",
-      // cdk automatically creates role for codepipeline
-      // role: pipelineRole,
       stages: [
-        // source
+        // Source
         {
           stageName: "SourceCode",
           actions: [
-            // new aws_codepipeline_actions.CodeStarConnectionsSourceAction({
-            //   actionName: "GitHub",
-            //   owner: props.repoOwner,
-            //   repo: props.repoName,
-            //   branch: props.repoBranch,
-            //   connectionArn: props.connectArn,
-            //   output: sourceOutput,
-            // }),
-
             new aws_codepipeline_actions.CodeCommitSourceAction({
               actionName: "CodeCommitChatbot",
               repository: codecommitRepository,
@@ -132,7 +106,7 @@ export class CodePipelineStack extends Stack {
           ],
         },
 
-        // build docker image and push to ecr
+        // Build Docker image and push to ECR
         {
           stageName: "BuildChatbotEcrImageStage",
           actions: [
@@ -145,16 +119,14 @@ export class CodePipelineStack extends Stack {
           ],
         },
 
-        // deploy new tag image to ecs service
+        // Deploy new tag image to ECS service
         {
           stageName: "EcsCodeDeploy",
           actions: [
             new aws_codepipeline_actions.EcsDeployAction({
-              // role: pipelineRole,
               actionName: "Deploy",
               service: props.service,
               input: codeBuildOutput,
-              // imageFile: codeBuildOutput.atPath(""),
               deploymentTimeout: Duration.minutes(10),
             }),
           ],

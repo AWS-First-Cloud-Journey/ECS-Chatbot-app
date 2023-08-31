@@ -79,7 +79,7 @@ import {
   
       // taask add container
       task.addContainer("NextChatbotContainer", {
-        containerName: "aws-fcj-chatbot-app",
+        containerName: "aws-fcj-repo",
         memoryLimitMiB: 4096,
         memoryReservationMiB: 4096,
         stopTimeout: Duration.seconds(120),
@@ -91,7 +91,7 @@ import {
         image: aws_ecs.ContainerImage.fromEcrRepository(
           aws_ecr.Repository.fromRepositoryName(
             this,
-            "aws-fcj",
+            "aws-fcj-repo",
             props.ecrRepoName
           )
         ),
@@ -157,7 +157,7 @@ import {
         port: 80,
         targets: [
           service.loadBalancerTarget({
-            containerName: "aws-fcj-chatbot-app",
+            containerName: "aws-fcj-repo",
             containerPort: 3000,
             protocol: aws_ecs.Protocol.TCP,
           }),
